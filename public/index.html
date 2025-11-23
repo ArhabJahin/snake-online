@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Snake Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="menu" class="menu">
+  <h1 class="title">🐍 Online Snake</h1>
+
+  <input id="nameInput" class="input" placeholder="Your name">
+  <input id="roomInput" class="input" placeholder="Room name">
+
+  <button class="btn" onclick="joinRoom()">Join / Create Room</button>
+</div>
+
+<div id="game" class="game">
+  <div class="sidebar">
+    <h2>Scores</h2>
+    <div id="scores"></div>
+  </div>
+
+  <canvas id="canvas" width="600" height="600"></canvas>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
+</body>
+</html>

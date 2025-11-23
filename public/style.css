@@ -1,0 +1,105 @@
+body {
+  margin: 0;
+  background: #0d0d0d;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+.menu {
+  text-align: center;
+  margin-top: 120px;
+}
+
+.title {
+  font-size: 48px;
+  color: #00ff99;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+}
+
+.input {
+  width: 260px;
+  padding: 14px;
+  margin: 10px;
+  font-size: 18px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  background: #222;
+  color: white;
+}
+
+.btn {
+  width: 280px;
+  padding: 15px;
+  font-size: 20px;
+  margin-top: 20px;
+  border-radius: 10px;
+  border: none;
+  background: #00cc88;
+  color: black;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  background: #00ffaa;
+  transform: scale(1.05);
+}
+
+.game {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+}
+
+.sidebar {
+  width: 250px;
+  height: 600px;
+  margin-right: 20px;
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 12px;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  color: #00ff99;
+}
+
+#scores {
+  font-size: 18px;
+}
+
+#canvas {
+  border: 3px solid #00ff99;
+  border-radius: 10px;
+  background: #111;
+}
+
+/* -------------------------------------------
+   FULLSCREEN STYLES
+--------------------------------------------*/
+
+:fullscreen #canvas,
+:-webkit-full-screen #canvas {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+:fullscreen .sidebar,
+:-webkit-full-screen .sidebar {
+  display: none !important;
+}
+
+:fullscreen #game,
+:-webkit-full-screen #game {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}

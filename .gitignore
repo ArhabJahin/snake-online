@@ -1,0 +1,44 @@
+# Node modules (dependencies installed via npm)
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
+
+# Optional npm cache folder
+.npm
+.eslintcache
+
+# MacOS / Windows system files
+.DS_Store
+Thumbs.db
+
+# Build output folders
+dist/
+build/
+out/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Optional: coverage reports (if using testing tools like jest)
+coverage/
