@@ -7,6 +7,14 @@ let socket;
 let players = {};
 let foods = [];
 let myId;
+let isSpectator = false; // NEW
+
+// NEW: persistent clientId (per browser storage)
+let clientId = localStorage.getItem('snakeClientId');
+if (!clientId) {
+  clientId = 'c-' + Math.random().toString(36).slice(2);
+  localStorage.setItem('snakeClientId', clientId);
+}
 
 const popup = document.createElement("div");
 popup.className = "popup";
@@ -18,13 +26,23 @@ function joinRoom() {
   const name = document.getElementById('nameInput').value.trim() || 'Guest';
 
   socket = io();
-  socket.emit('joinRoom', room, name);
+  // send clientId too
+  socket.emit('joinRoom', room, name, clientId);
 
   socket.on('joined', data => {
     myId = data.yourId;
+    isSpectator = !!data.spectator;
+
     document.getElementById('menu').style.display = 'none';
     document.getElementById('game').style.display = 'flex';
     document.title = `Snake | Room: ${room}`;
+
+    const statusEl = document.getElementById('status');
+    if (statusEl) {
+      statusEl.textContent = isSpectator
+        ? 'You are spectating this round.'
+        : '';
+    }
   });
 
   socket.on('gameState', state => {
@@ -69,10 +87,16 @@ function showFinalPopup(text) {
 
 function returnToMenu() {
   players = {};
+  myId = null;
+  isSpectator = false; // reset local flag
+
   if (socket) socket.disconnect();
 
   document.getElementById('game').style.display = 'none';
   document.getElementById('menu').style.display = 'block';
+
+  const statusEl = document.getElementById('status');
+  if (statusEl) statusEl.textContent = '';
 }
 
 const keys = {};
@@ -80,6 +104,13 @@ window.addEventListener('keydown', e => {
   if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
   keys[e.key] = true;
   if (!socket) return;
+
+  // spectators can't input gameplay actions
+  if (isSpectator) {
+    // Still allow fullscreen toggle even as spectator
+    if (e.key.toLowerCase() === "f") toggleFullscreen();
+    return;
+  }
 
   if (e.key.toLowerCase() === 'z') socket.emit('speedBoost', true);
 
@@ -89,11 +120,15 @@ window.addEventListener('keydown', e => {
 
 window.addEventListener('keyup', e => {
   keys[e.key] = false;
-  if (socket && e.key.toLowerCase() === 'z') socket.emit('speedBoost', false);
+  if (!socket) return;
+
+  if (isSpectator) return;
+
+  if (e.key.toLowerCase() === 'z') socket.emit('speedBoost', false);
 });
 
 setInterval(() => {
-  if (!socket) return;
+  if (!socket || isSpectator) return;
 
   if (keys['ArrowUp'] || keys['w']) socket.emit('direction', 'up');
   if (keys['ArrowDown'] || keys['s']) socket.emit('direction', 'down');

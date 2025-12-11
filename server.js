@@ -14,11 +14,11 @@ app.get('/', (req, res) =>
 
 // ====== ADJUSTABLE GAME SETTINGS ======
 const SPEED_BASE = 50;
-const NORMAL_SPEED = 30;
-const BOOST_SPEED = 90;          // FIXED: slower boost (was 80)
+const NORMAL_SPEED = 50;
+const BOOST_SPEED = 90;
 
-const GROWTH_PER_FOOD = 1 / 2;
-const BOOST_SHRINK_RATE = 1.3;   // FIXED: slower shrink (was 2)
+const GROWTH_PER_FOOD = 50;   // not really used as "50" anymore, but kept
+const BOOST_SHRINK_RATE = 1.3;
 const GRID = 30;
 const TICK_RATE = 10;
 const FOOD_COUNT = 5;
@@ -30,7 +30,8 @@ function createRoom(id) {
     players: {},
     foods: [],
     nextId: 1,
-    gameEnded: false
+    gameEnded: false,
+    deadClientIds: new Set() // NEW: track who died this round
   };
   for (let i = 0; i < FOOD_COUNT; i++) spawnFood(id);
 }
@@ -53,16 +54,30 @@ function spawnFood(roomId) {
 }
 
 io.on('connection', socket => {
-  socket.on('joinRoom', (roomId, playerName) => {
+  // JOIN ROOM now includes clientId
+  socket.on('joinRoom', (roomId, playerName, clientId) => {
     roomId = (roomId || 'lobby').trim().toLowerCase();
-    if (!rooms[roomId]) createRoom(roomId);
+    clientId = (clientId || socket.id); // fallback if client doesn't send
+    socket.clientId = clientId;
 
+    if (!rooms[roomId]) createRoom(roomId);
     const room = rooms[roomId];
 
     if (socket.roomId) socket.leave(socket.roomId);
 
     socket.join(roomId);
     socket.roomId = roomId;
+
+    // Check if this client already died in this round → spectator only
+    const isSpectator = !room.gameEnded && room.deadClientIds.has(clientId);
+
+    if (isSpectator) {
+      // Spectator: do NOT create a player, just send joined + current state
+      socket.playerId = null;
+      socket.emit('joined', { yourId: null, spectator: true });
+      io.to(roomId).emit('gameState', getState(room));
+      return;
+    }
 
     const playerId = room.nextId++;
     socket.playerId = playerId;
@@ -77,6 +92,7 @@ io.on('connection', socket => {
 
     room.players[playerId] = {
       id: playerId,
+      clientId, // NEW: link player to persistent client identity
       name: playerName.trim() || `Snake ${playerId}`,
       color: colors[(playerId - 1) % colors.length],
       x: startX, y: startY,
@@ -94,15 +110,15 @@ io.on('connection', socket => {
       speedBoost: false,
 
       moveProgress: 0,
-      shrinkProgress: 0       // NEW: fractional shrink accumulator
+      shrinkProgress: 0
     };
 
-    socket.emit('joined', { yourId: playerId });
+    socket.emit('joined', { yourId: playerId, spectator: false });
     io.to(roomId).emit('gameState', getState(room));
   });
 
   socket.on('direction', dir => {
-    const p = rooms[socket.roomId]?.players[socket.playerId];
+    const p = rooms[socket.roomId]?.players?.[socket.playerId];
     if (!p || !p.alive) return;
 
     if (dir === 'left' && p.dx !== 1) { p.dx = -1; p.dy = 0; }
@@ -112,7 +128,7 @@ io.on('connection', socket => {
   });
 
   socket.on('speedBoost', on => {
-    const p = rooms[socket.roomId]?.players[socket.playerId];
+    const p = rooms[socket.roomId]?.players?.[socket.playerId];
     if (!p) return;
 
     if (p.trail.length <= 3) {
@@ -126,6 +142,7 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     const room = rooms[socket.roomId];
     if (room && room.players[socket.playerId]) {
+      // This is treated as "player gone" but NOT recorded as a death.
       room.players[socket.playerId].alive = false;
       room.players[socket.playerId].trail = [];
 
@@ -176,23 +193,31 @@ setInterval(() => {
       p.moveProgress -= steps;
 
       for (let s = 0; s < steps; s++) {
+
+        // === Movement ===
         p.x = (p.x + p.dx + GRID) % GRID;
         p.y = (p.y + p.dy + GRID) % GRID;
 
         const head = { x: p.x, y: p.y };
 
+        // === Collision check ===
         for (const oid in room.players) {
           if (oid === id) continue;
           const o = room.players[oid];
           if (o.alive &&
-            o.trail.some(seg => seg.x === head.x && seg.y === head.y)) {
+              o.trail.some(seg => seg.x === head.x && seg.y === head.y)) {
             p.alive = false;
             p.trail = [];
+
+            // NEW: mark this client as dead for the rest of the round
+            if (p.clientId) {
+              room.deadClientIds.add(p.clientId);
+            }
           }
         }
-
         if (!p.alive) break;
 
+        // === Food check ===
         let ateFood = false;
         for (let i = 0; i < room.foods.length; i++) {
           const f = room.foods[i];
@@ -206,15 +231,18 @@ setInterval(() => {
           }
         }
 
+        // === Add new head ===
         p.trail.push(head);
 
+        // ====== FIXED TRUE GROWTH ENGINE ======
         if (ateFood) {
-          if (p.growthBuffer >= 1) {
+          // Full growth - no shrinking this tick
+          while (p.growthBuffer >= 1) {
             p.growthBuffer -= 1;
-          } else {
-            p.trail.shift();
           }
+
         } else {
+          // ===== Normal shrinking =====
           if (p.speedBoost) {
             p.shrinkProgress += BOOST_SHRINK_RATE;
 
@@ -245,6 +273,9 @@ setInterval(() => {
         'gameOver',
         winner ? `${winner.name} WINS!` : 'Draw!'
       );
+
+      // NEW: round over → allow everyone to play again next round
+      room.deadClientIds.clear();
     }
   }
 }, 1000 / TICK_RATE);
