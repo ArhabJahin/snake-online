@@ -1,85 +1,234 @@
 body {
   margin: 0;
-  background: #0d0d0d;
-  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top, #1a2a6c, #000000 55%, #000000 100%);
+  font-family: "Poppins", Arial, sans-serif;
   color: white;
+  overflow: hidden;
 }
+
+/* ========== MENU ========== */
 
 .menu {
-  text-align: center;
-  margin-top: 120px;
-}
-
-.title {
-  font-size: 48px;
-  color: #00ff99;
-  margin-bottom: 20px;
-  letter-spacing: 2px;
-}
-
-.input {
-  width: 260px;
-  padding: 14px;
-  margin: 10px;
-  font-size: 18px;
-  border-radius: 8px;
-  border: none;
-  outline: none;
-  background: #222;
-  color: white;
-}
-
-.btn {
-  width: 280px;
-  padding: 15px;
-  font-size: 20px;
-  margin-top: 20px;
-  border-radius: 10px;
-  border: none;
-  background: #00cc88;
-  color: black;
-  cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
-}
-
-.btn:hover {
-  background: #00ffaa;
-  transform: scale(1.05);
-}
-
-.game {
+  position: absolute;
+  inset: 0;
   display: flex;
-  height: 100vh;
-  width: 100vw;
   justify-content: center;
   align-items: center;
 }
 
+.menu-card {
+  background: rgba(10, 10, 10, 0.85);
+  border-radius: 20px;
+  padding: 30px 40px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 255, 153, 0.35);
+  backdrop-filter: blur(10px);
+  text-align: center;
+  max-width: 480px;
+  width: 90%;
+}
+
+.title {
+  font-size: 42px;
+  color: #00ff99;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 12px rgba(0, 255, 153, 0.8);
+}
+
+.input {
+  width: 100%;
+  padding: 14px;
+  margin: 10px 0;
+  font-size: 18px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  outline: none;
+  background: #151515;
+  color: white;
+  transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.input:focus {
+  border-color: #00ff99;
+  box-shadow: 0 0 10px rgba(0, 255, 153, 0.4);
+  background: #111;
+}
+
+.btn {
+  width: 100%;
+  padding: 15px;
+  font-size: 20px;
+  margin-top: 18px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #00cc88, #00ffaa);
+  color: black;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 10px 25px rgba(0, 255, 153, 0.35);
+}
+
+.btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 30px rgba(0, 255, 153, 0.5);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 6px 15px rgba(0, 255, 153, 0.4);
+}
+
+/* Tip under the button */
+.tip {
+  margin-top: 18px;
+  font-size: 13px;
+  color: #cccccc;
+}
+
+.tip span {
+  color: #00ff99;
+  font-weight: 600;
+}
+
+/* ========== GAME LAYOUT ========== */
+
+.game {
+  display: none; /* toggled from JS */
+  height: 100vh;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+}
+
+.glass {
+  backdrop-filter: blur(12px);
+}
+
+/* Sidebar / Scoreboard */
+
 .sidebar {
-  width: 250px;
-  height: 600px;
-  margin-right: 20px;
-  background: #1a1a1a;
+  width: 260px;
+  height: 620px;
+  background: rgba(15, 15, 15, 0.88);
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 20px;
   overflow-y: auto;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 255, 153, 0.3);
 }
 
 .sidebar h2 {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #00ff99;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(0, 255, 153, 0.7);
 }
 
 #scores {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+/* Spectator status styling */
+
+.status {
+  margin-top: 16px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 204, 0, 0.08);
+  color: #ffcc00;
+  font-size: 13px;
+  text-align: center;
+  min-height: 20px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Canvas styling */
+
+#canvas {
+  border-radius: 22px;
+  background: #050505;
+  box-shadow:
+    0 0 25px rgba(0, 255, 153, 0.5),
+    0 0 60px rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(0, 255, 153, 0.4);
+}
+
+/* Last game scores on the menu */
+
+.final-scores {
+  margin-top: 26px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+  background: #080808;
+  padding: 15px 18px;
+  border-radius: 14px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.7);
+  border: 1px solid rgba(0, 255, 153, 0.35);
+}
+
+.final-scores h2 {
+  margin-top: 0;
+  text-align: center;
+  color: #00ff99;
   font-size: 18px;
 }
 
-#canvas {
-  border: 3px solid #00ff99;
-  border-radius: 10px;
-  background: #111;
+.final-scores .final-message {
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.final-scores .player-line {
+  font-size: 15px;
+  margin: 4px 0;
+}
+
+/* ========== GAME OVER POPUP ========== */
+
+.popup {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  background: radial-gradient(circle at top, rgba(0, 0, 0, 0.9), rgba(0,0,0,0.95));
+  color: white;
+}
+
+.popup > div {
+  /* not used since we inject raw HTML, but kept if you wrap later */
+}
+
+.popup h1 {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 32px;
+  color: #00ff99;
+  text-shadow: 0 0 12px rgba(0, 255, 153, 0.9);
+}
+
+.popup h2 {
+  margin: 0 0 6px;
+  text-align: center;
+  font-size: 22px;
+}
+
+.popup h3 {
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 400;
+  color: #cccccc;
 }
 
 /* -------------------------------------------
@@ -97,8 +246,8 @@ body {
   display: none !important;
 }
 
-:fullscreen #game,
-:-webkit-full-screen #game {
+:fullscreen .game,
+:-webkit-full-screen .game {
   flex-direction: column;
   justify-content: center;
   align-items: center;

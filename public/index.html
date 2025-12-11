@@ -3,22 +3,38 @@
 <head>
   <title>Snake Online</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
 <div id="menu" class="menu">
-  <h1 class="title">🐍 Online Snake</h1>
+  <div class="menu-card">
+    <h1 class="title">🐍 Online Snake</h1>
 
-  <input id="nameInput" class="input" placeholder="Your name">
-  <input id="roomInput" class="input" placeholder="Room name">
+    <input id="nameInput" class="input" placeholder="Your name">
+    <input id="roomInput" class="input" placeholder="Room name">
 
-  <button class="btn" onclick="joinRoom()">Join / Create Room</button>
+    <button class="btn" onclick="joinRoom()">Join / Create Room</button>
+
+    <!-- Last game scores shown here after a game ends -->
+    <div id="finalScores" class="final-scores"></div>
+
+    <div class="tip">
+      Use <span>W A S D</span> or <span>Arrow Keys</span> to move,  
+      <span>Z</span> to boost, <span>F</span> to toggle fullscreen.
+    </div>
+  </div>
 </div>
 
 <div id="game" class="game">
-  <div class="sidebar">
+  <div class="sidebar glass">
     <h2>Scores</h2>
     <div id="scores"></div>
+
+    <!-- Spectator status area -->
+    <div id="status" class="status"></div>
   </div>
 
   <canvas id="canvas" width="600" height="600"></canvas>

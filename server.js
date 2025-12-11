@@ -17,7 +17,7 @@ const SPEED_BASE = 50;
 const NORMAL_SPEED = 50;
 const BOOST_SPEED = 90;
 
-const GROWTH_PER_FOOD = 50;   // not really used as "50" anymore, but kept
+const GROWTH_PER_FOOD = 50;
 const BOOST_SHRINK_RATE = 1.3;
 const GRID = 30;
 const TICK_RATE = 10;
@@ -31,7 +31,7 @@ function createRoom(id) {
     foods: [],
     nextId: 1,
     gameEnded: false,
-    deadClientIds: new Set() // NEW: track who died this round
+    deadClientIds: new Set() // track clients that died this round
   };
   for (let i = 0; i < FOOD_COUNT; i++) spawnFood(id);
 }
@@ -54,10 +54,10 @@ function spawnFood(roomId) {
 }
 
 io.on('connection', socket => {
-  // JOIN ROOM now includes clientId
+  // joinRoom now has clientId to persist death/spectator status
   socket.on('joinRoom', (roomId, playerName, clientId) => {
     roomId = (roomId || 'lobby').trim().toLowerCase();
-    clientId = (clientId || socket.id); // fallback if client doesn't send
+    clientId = (clientId || socket.id);
     socket.clientId = clientId;
 
     if (!rooms[roomId]) createRoom(roomId);
@@ -68,11 +68,10 @@ io.on('connection', socket => {
     socket.join(roomId);
     socket.roomId = roomId;
 
-    // Check if this client already died in this round → spectator only
+    // If this client died earlier this round, they are forced to spectate
     const isSpectator = !room.gameEnded && room.deadClientIds.has(clientId);
 
     if (isSpectator) {
-      // Spectator: do NOT create a player, just send joined + current state
       socket.playerId = null;
       socket.emit('joined', { yourId: null, spectator: true });
       io.to(roomId).emit('gameState', getState(room));
@@ -92,7 +91,7 @@ io.on('connection', socket => {
 
     room.players[playerId] = {
       id: playerId,
-      clientId, // NEW: link player to persistent client identity
+      clientId,
       name: playerName.trim() || `Snake ${playerId}`,
       color: colors[(playerId - 1) % colors.length],
       x: startX, y: startY,
@@ -142,7 +141,6 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     const room = rooms[socket.roomId];
     if (room && room.players[socket.playerId]) {
-      // This is treated as "player gone" but NOT recorded as a death.
       room.players[socket.playerId].alive = false;
       room.players[socket.playerId].trail = [];
 
@@ -209,7 +207,7 @@ setInterval(() => {
             p.alive = false;
             p.trail = [];
 
-            // NEW: mark this client as dead for the rest of the round
+            // mark this client as dead for this round
             if (p.clientId) {
               room.deadClientIds.add(p.clientId);
             }
@@ -234,15 +232,11 @@ setInterval(() => {
         // === Add new head ===
         p.trail.push(head);
 
-        // ====== FIXED TRUE GROWTH ENGINE ======
         if (ateFood) {
-          // Full growth - no shrinking this tick
           while (p.growthBuffer >= 1) {
             p.growthBuffer -= 1;
           }
-
         } else {
-          // ===== Normal shrinking =====
           if (p.speedBoost) {
             p.shrinkProgress += BOOST_SHRINK_RATE;
 
@@ -274,7 +268,7 @@ setInterval(() => {
         winner ? `${winner.name} WINS!` : 'Draw!'
       );
 
-      // NEW: round over → allow everyone to play again next round
+      // new round can be played, reset the dead list
       room.deadClientIds.clear();
     }
   }
