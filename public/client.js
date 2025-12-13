@@ -1,7 +1,6 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const GRID = 30;
-const GRID_SIZE = canvas.width / GRID;
 
 // Server tick duration (ms) – keep in sync with server TICK_RATE
 const TICK_DURATION = 100; // 1000 / 10
@@ -33,16 +32,84 @@ if (!clientId) {
   localStorage.setItem('snakeClientId', clientId);
 }
 
+// === AI toggle state ===
+let aiEnabled = true;
+
+function toggleAI() {
+  aiEnabled = !aiEnabled;
+  const btn = document.getElementById('aiToggle');
+  if (!btn) return;
+  if (aiEnabled) {
+    btn.textContent = 'AI In';
+    btn.classList.remove('ai-off');
+  } else {
+    btn.textContent = 'AI Out';
+    btn.classList.add('ai-off');
+  }
+}
+
 function deepCopy(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
+
+/* -----------------------------
+   RESPONSIVE SQUARE CANVAS
+   (fits screen, stays sharp)
+----------------------------- */
+
+let dpr = window.devicePixelRatio || 1;
+let bgGradient = null;
+
+function resizeCanvas() {
+  const gameDiv = document.getElementById('game');
+  const sidebar = document.querySelector('.sidebar');
+  if (!gameDiv || !canvas) return;
+
+  // Only when game is visible
+  if (gameDiv.style.display !== 'flex') return;
+
+  const padding = 16; // from CSS
+  const sidebarWidth = sidebar ? sidebar.offsetWidth + 16 : 0;
+
+  const availableWidth = window.innerWidth - sidebarWidth - padding;
+  const availableHeight = window.innerHeight - padding;
+
+  // Square board that best fits available space
+  const size = Math.max(280, Math.min(availableWidth, availableHeight));
+
+  dpr = window.devicePixelRatio || 1;
+
+  // CSS size (logical pixels)
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+
+  // Actual pixel resolution for sharp rendering
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+
+  // Reset transform so 1 unit in code = 1 CSS pixel
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Force background gradient to recompute with new size
+  bgGradient = null;
+}
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+/* -----------------------------
+   CONNECTION / ROOM
+----------------------------- */
 
 function joinRoom() {
   const room = document.getElementById('roomInput').value.trim() || 'lobby';
   const name = document.getElementById('nameInput').value.trim() || 'Guest';
 
   socket = io();
-  socket.emit('joinRoom', room, name, clientId);
+
+  // pass aiEnabled as 4th argument
+  socket.emit('joinRoom', room, name, clientId, aiEnabled);
 
   socket.on('joined', data => {
     myId = data.yourId;
@@ -58,6 +125,9 @@ function joinRoom() {
         ? 'You are spectating this round.'
         : '';
     }
+
+    // After game layout is visible, size the canvas
+    requestAnimationFrame(resizeCanvas);
   });
 
   socket.on('gameState', state => {
@@ -193,75 +263,72 @@ function updateScores() {
    RENDERING / SMOOTH MOVEMENT
 ----------------------------- */
 
-let bgGradient = null;
-
-function ensureBackgroundGradient() {
+function ensureBackgroundGradient(drawHeight) {
   if (!bgGradient) {
-    bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGradient = ctx.createLinearGradient(0, 0, 0, drawHeight);
     bgGradient.addColorStop(0, "#05090f");
     bgGradient.addColorStop(0.5, "#050505");
     bgGradient.addColorStop(1, "#020308");
   }
 }
 
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
 function drawSmooth() {
-  ensureBackgroundGradient();
+  if (canvas.width === 0 || canvas.height === 0) return;
+
+  const drawSize = canvas.width / dpr; // since we scaled equally, width = height logically
+  const drawWidth = drawSize;
+  const drawHeight = drawSize;
+
+  ensureBackgroundGradient(drawHeight);
 
   const now = performance.now();
   let t = (now - lastStateTime) / TICK_DURATION;
   if (t < 0) t = 0;
   if (t > 1) t = 1;
 
+  const cellSize = drawWidth / GRID;
+
   // Background
   ctx.fillStyle = bgGradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, drawWidth, drawHeight);
 
-  // Draw subtle grid
+  // Subtle grid
   ctx.save();
   ctx.globalAlpha = 0.07;
   ctx.lineWidth = 1;
   for (let i = 0; i <= GRID; i++) {
-    const x = i * GRID_SIZE;
-    const y = i * GRID_SIZE;
+    const x = i * cellSize;
+    const y = i * cellSize;
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
+    ctx.lineTo(x, drawHeight);
     ctx.strokeStyle = "#1a1a1a";
     ctx.stroke();
 
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
+    ctx.lineTo(drawWidth, y);
     ctx.strokeStyle = "#1a1a1a";
     ctx.stroke();
   }
   ctx.restore();
 
-  // Food: pulsating circles
+  // Food: pulsating squares
   const pulse = 0.7 + 0.15 * Math.sin(now / 250);
   foods.forEach(f => {
-    const cx = (f.x + 0.5) * GRID_SIZE;
-    const cy = (f.y + 0.5) * GRID_SIZE;
-    const r = (GRID_SIZE / 2 - 5) * pulse;
+    const size = (cellSize - 4) * pulse;
+    const px = f.x * cellSize + (cellSize - size) / 2;
+    const py = f.y * cellSize + (cellSize - size) / 2;
 
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
-    grad.addColorStop(0, "#ffffff");
-    grad.addColorStop(1, "#aaaaaa");
-    ctx.fillStyle = grad;
+    ctx.fillStyle = "#ffffff";
     ctx.shadowColor = "#ffffff";
     ctx.shadowBlur = 10;
-    ctx.fill();
+    ctx.fillRect(px, py, size, size);
     ctx.restore();
   });
 
-  // Snakes with interpolation for smoother movement
+  // Snakes: blocky style with fixed wrap interpolation
   for (let id in players) {
     const p = players[id];
     if (!p.trail) continue;
@@ -274,37 +341,26 @@ function drawSmooth() {
       const currSeg = currTrail[i];
       const prevSeg = prevTrail[i] || currSeg;
 
-      // handle interpolation
-      let x = lerp(prevSeg.x, currSeg.x, t);
-      let y = lerp(prevSeg.y, currSeg.y, t);
+      // Prevent interpolation across wrap edges
+      let dx = currSeg.x - prevSeg.x;
+      let dy = currSeg.y - prevSeg.y;
+      if (Math.abs(dx) > GRID / 2) dx = 0;
+      if (Math.abs(dy) > GRID / 2) dy = 0;
 
-      const cx = (x + 0.5) * GRID_SIZE;
-      const cy = (y + 0.5) * GRID_SIZE;
+      const x = prevSeg.x + dx * t;
+      const y = prevSeg.y + dy * t;
+
+      const px = x * cellSize + 2;
+      const py = y * cellSize + 2;
+      const size = cellSize - 4;
 
       const isHead = (i === currTrail.length - 1);
-      const baseRadius = GRID_SIZE / 2 - 4;
-      const radius = isHead ? baseRadius + 2 : baseRadius - 2;
 
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-
-      // body fade
-      const alpha = isHead ? 1.0 : 0.6;
-      ctx.fillStyle = p.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-
+      ctx.fillStyle = isHead ? p.color : (p.color + "88");
       ctx.shadowColor = p.color;
-      ctx.shadowBlur = isHead ? 18 : 10;
-      ctx.fill();
-
-      if (isHead) {
-        // tiny "eye" highlight
-        ctx.beginPath();
-        ctx.arc(cx + 3, cy - 3, 3, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffffcc";
-        ctx.fill();
-      }
-
+      ctx.shadowBlur = isHead ? 14 : 6;
+      ctx.fillRect(px, py, size, size);
       ctx.restore();
     }
   }
@@ -342,8 +398,10 @@ function toggleFullscreen() {
       !document.webkitFullscreenElement &&
       !document.msFullscreenElement) {
     goFullscreen();
+    setTimeout(resizeCanvas, 300);
   } else {
     exitFullscreen();
+    setTimeout(resizeCanvas, 300);
   }
 }
 

@@ -93,6 +93,35 @@ body {
   font-weight: 600;
 }
 
+/* ========== AI TOGGLE ON MENU ========== */
+
+.ai-row {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-label {
+  font-size: 14px;
+  color: #dddddd;
+}
+
+/* AI toggle button (inherits .btn) */
+.btn-ai {
+  width: auto;
+  padding: 10px 18px;
+  font-size: 16px;
+  margin-top: 0;
+}
+
+/* When AI is turned OFF */
+.btn-ai.ai-off {
+  background: linear-gradient(135deg, #cc4444, #ff6666);
+  box-shadow: 0 10px 25px rgba(255, 102, 102, 0.35);
+}
+
 /* ========== GAME LAYOUT ========== */
 
 .game {
@@ -101,7 +130,9 @@ body {
   width: 100vw;
   justify-content: center;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
+  padding: 8px;
+  box-sizing: border-box;
 }
 
 .glass {
@@ -112,13 +143,14 @@ body {
 
 .sidebar {
   width: 260px;
-  height: 620px;
+  height: calc(100vh - 16px);
   background: rgba(15, 15, 15, 0.88);
   padding: 20px;
   border-radius: 20px;
   overflow-y: auto;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(0, 255, 153, 0.3);
+  box-sizing: border-box;
 }
 
 .sidebar h2 {
@@ -148,8 +180,16 @@ body {
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
 }
 
-/* Canvas styling */
+/* Board wrapper takes the rest of the screen */
+.board-wrapper {
+  flex: 1;
+  height: calc(100vh - 16px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
+/* Canvas styling (size is controlled via JS) */
 #canvas {
   border-radius: 22px;
   background: #050505;
@@ -157,6 +197,7 @@ body {
     0 0 25px rgba(0, 255, 153, 0.5),
     0 0 60px rgba(0, 0, 0, 0.9);
   border: 1px solid rgba(0, 255, 153, 0.4);
+  display: block;
 }
 
 /* Last game scores on the menu */
@@ -207,7 +248,7 @@ body {
 }
 
 .popup > div {
-  /* not used since we inject raw HTML, but kept if you wrap later */
+  /* reserved if you wrap inner content later */
 }
 
 .popup h1 {

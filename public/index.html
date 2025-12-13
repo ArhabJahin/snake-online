@@ -16,6 +16,12 @@
     <input id="nameInput" class="input" placeholder="Your name">
     <input id="roomInput" class="input" placeholder="Room name">
 
+    <!-- AI toggle row -->
+    <div class="ai-row">
+      <span class="ai-label">AI Opponent:</span>
+      <button id="aiToggle" class="btn btn-ai" onclick="toggleAI()">AI In</button>
+    </div>
+
     <button class="btn" onclick="joinRoom()">Join / Create Room</button>
 
     <!-- Last game scores shown here after a game ends -->
@@ -37,7 +43,10 @@
     <div id="status" class="status"></div>
   </div>
 
-  <canvas id="canvas" width="600" height="600"></canvas>
+  <!-- canvas is now flexible, JS will set its pixel size -->
+  <div class="board-wrapper">
+    <canvas id="canvas"></canvas>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
